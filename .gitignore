@@ -1,0 +1,11 @@
+/.idea/
+*~
+*.pyc
+/build/
+/project.egg-info/
+
+
+
+
+
+
