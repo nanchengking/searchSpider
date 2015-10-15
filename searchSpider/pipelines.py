@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -8,6 +7,7 @@ import logging
 from searchSpider import  settings
 import json
 from json import  *
+import codecs
 from searchSpider.items import *
 class SearchspiderPipeline(object):
     def process_item(self, item, spider):
@@ -15,10 +15,12 @@ class SearchspiderPipeline(object):
         item['processDate']=str(item['processDate'])
         item['keyword']=item['keyword']
         item['targetTitle']=item['targetTitle']
-        jsonItem=JSONEncoder().encode(dict(item))
-        self.file.write(jsonItem)
-        self.file.write('\n')
-        self.file.flush()
+        # jsonItem=JSONEncoder().encode(dict(item))
+        # self.file.write(jsonItem)
+        # self.file.write('\n')
+        # self.file.flush()
+        line = json.dumps(dict(item)) + '\n'
+        self.file.write(line)
         return item
     def filter(self):
         """
@@ -27,9 +29,9 @@ class SearchspiderPipeline(object):
         """
         pass
     def open_spider(self,spider):
-        logging.info("==open_spider调用成功==")
-        self.file=open("searchSpider.json",'w')
+        logging.info(u"==open_spider调用成功==")
+        self.file=codecs.open("searchSpider.json",'wb', encoding = 'utf-8')
     def close_spider(self,spider):
         self.file.flush()
         self.file.close()
-        logging.info("==close_spider调用成功==")
+        logging.info(u"==close_spider调用成功==")

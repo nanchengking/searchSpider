@@ -4,7 +4,7 @@
 #
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/items.html
-
+#coding=utf-8
 import scrapy
 
 
