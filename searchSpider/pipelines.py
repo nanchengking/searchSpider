@@ -11,6 +11,7 @@ import codecs
 from searchSpider.items import *
 class SearchspiderPipeline(object):
     def process_item(self, item, spider):
+        item['platform'] = "百度搜索"
         item['createDate']=str(item['createDate'])
         item['processDate']=str(item['processDate'])
         item['keyword']=item['keyword']

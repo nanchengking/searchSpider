@@ -95,7 +95,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
                 item['targetUrl'] = result.xpath("h3[@class]/a[@href]/@href").extract()[0]
-                item['targetTitle'] = result.xpath("h3[@class]/a[@href]/text()").extract()[0]
+                item['targetTitle'] =  ''.join(result.xpath("h3[@class]/a[@href]//text()").extract())
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
