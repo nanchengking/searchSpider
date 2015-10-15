@@ -11,17 +11,17 @@ import codecs
 from searchSpider.items import *
 class SearchspiderPipeline(object):
     def process_item(self, item, spider):
-        item['platform'] = "百度搜索"
+        item['platform'] = "百度搜索".encode('utf-8')
         item['createDate']=str(item['createDate'])
         item['processDate']=str(item['processDate'])
-        item['keyword']=item['keyword']
-        item['targetTitle']=item['targetTitle']
+        item['keyword']=item['keyword'].encode('utf-8')
+        item['targetTitle']=item['targetTitle'].encode('utf-8')
         # jsonItem=JSONEncoder().encode(dict(item))
         # self.file.write(jsonItem)
         # self.file.write('\n')
         # self.file.flush()
         line = json.dumps(dict(item)) + '\n'
-        self.file.write(line)
+        self.file.write(line.decode('unicode_escape'))
         return item
     def filter(self):
         """
