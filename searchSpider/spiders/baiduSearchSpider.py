@@ -55,7 +55,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         if len(self.filters)<1:
             self.closed(u'传入filters参数为空！无法初始化百度爬虫')
         logging.info(u"keywods is : %s"%keywords)
-        logging.info(u"爬虫初始化成功")
+        logging.info(u"百度爬虫初始化成功")
         self.isLinux=False
         super(BaiduSearchSpider, self).__init__(*args, **kwargs)
         self.initFilterPramas(whiteWords=whiteWords,blackWords=blackWords,blackURLs=blackURLs,whiteURLs=whiteURLs)
@@ -234,7 +234,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
 
     def closed(self, reason):
         if reason:
-            logging.warning(reason)
+            logging.warning("爬虫运行结束： %s"%reason)
         logging.info(u"现在有多少self.realURLs： %s"%len(self.realURLs))
         logging.info(u"现在有多少self.faceURLs： %s"%len(self.faceURLs))
         logging.info(u'现在解析了多少页面： %s' % self.num)
