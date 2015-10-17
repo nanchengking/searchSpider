@@ -66,7 +66,7 @@ class SougouSearchSpider(scrapy.spiders.Spider):
         self.limit = limit
         self.keywordsAndPages = {}
         # "https://www.sogou.com/web?query=%E5%A6%B9%E5%AD%90&sut=1013&lkt=1%2C1445092071106%2C1445092071106&sst0=1445092071216&page=21&ie=utf8&p=40040100&dp=1&w=01019900&dr=1"
-        self.baseURL = ['https://www.sogou.com/web?query=', '','&sut=1013&lkt=1%2C1445092071106%2C1445092071106&sst0=1445092071216&page=','1','&ie=utf8&p=40040100&dp=1&w=01019900&dr=1']
+        self.baseURL = ['https://www.sogou.com/web?query=', '','&page=','1']
         self.requests = map(self.initStartRequests, keywords)
 
     def initFilterPramas(self,whiteWords,blackWords,blackURLs,whiteURLs):
@@ -109,7 +109,6 @@ class SougouSearchSpider(scrapy.spiders.Spider):
         :param pn: 1代表第一页，2代表第二页，3代表第三页……
         :return:一个request
         """
-        self.keywordsAndPages[keyword] += 1  # 每新建一个requet，都要把这个关键字的页面加一页
         tem = self.baseURL
         tem[1] = keyword
         tem[3] = str(pn)
@@ -128,8 +127,8 @@ class SougouSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"搜狗搜索"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = self.getUnicode(result.xpath(".//h3[@class]/a[@href]/@href").extract()[0])
-                item['targetTitle'] =  self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]//text()").extract()))
+                item['targetUrl'] = self.getUnicode(''.join(result.xpath(".//h3/a[@href]/@href").extract()))
+                item['targetTitle'] =  self.getUnicode(''.join(result.xpath(".//h3/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -142,8 +141,13 @@ class SougouSearchSpider(scrapy.spiders.Spider):
                         self.faceURLs.add(item['targetUrl'])
                         yield self.checkURLis200(url=item['targetUrl'],item=item)
             keyword = response.meta['keyword']
-            pageNum = self.keywordsAndPages[keyword]
-            if pageNum < (self.limit ):
+            self.keywordsAndPages[keyword]+=1
+            pageNum =self.keywordsAndPages[keyword]
+            logging.info(u"num 是 %s"%pageNum)
+            logging.info(u"limit 是 %s"%self.limit)
+            if pageNum <= self.limit:
+                logging.info(u'==发出下一页请求==')
+                pageNum+=1
                 yield self.createNextPageRequest(keyword=response.meta['keyword'], pn=pageNum)
         else:
             logging.info(response.status)

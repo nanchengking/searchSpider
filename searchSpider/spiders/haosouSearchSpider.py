@@ -109,7 +109,6 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         :param pn: 1代表第一页，2代表第二页，3代表第三页……
         :return:一个request
         """
-        self.keywordsAndPages[keyword] += 1  # 每新建一个requet，都要把这个关键字的页面加一页
         tem = self.baseURL
         tem[1] = keyword
         tem[3] = str(pn)
@@ -128,7 +127,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"好搜搜索"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = self.getUnicode(result.xpath(".//h3[@class]/a[@href]/@href").extract()[0])
+                item['targetUrl'] = self.getUnicode(result.xpath(''.join(".//h3[@class]/a[@href]/@href").extract()))
                 item['targetTitle'] =  self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
@@ -142,8 +141,9 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                         self.faceURLs.add(item['targetUrl'])
                         yield self.checkURLis200(url=item['targetUrl'],item=item)
             keyword = response.meta['keyword']
+            self.keywordsAndPages[keyword]+=1
             pageNum = self.keywordsAndPages[keyword]
-            if pageNum < self.limit:
+            if pageNum <= self.limit:
                 yield self.createNextPageRequest(keyword=response.meta['keyword'], pn=pageNum)
         else:
             logging.info(response.status)

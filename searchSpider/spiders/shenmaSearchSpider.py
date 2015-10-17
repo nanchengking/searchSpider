@@ -108,7 +108,6 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         :param pn: 1代表第一页，2代表第二页，3代表第三页……
         :return:一个request
         """
-        self.keywordsAndPages[keyword] += 1  # 每新建一个requet，都要把这个关键字的页面加一页
         tem = self.baseURL
         tem[1] = keyword
         tem[3] = str(pn)
@@ -142,8 +141,9 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
                         self.faceURLs.add(item['targetUrl'])
                         yield self.checkURLis200(url=item['targetUrl'],item=item)
             keyword = response.meta['keyword']
-            pageNum = self.keywordsAndPages[keyword]
-            if pageNum < self.limit:
+            self.keywordsAndPages[keyword]+=1
+            pageNum=self.keywordsAndPages[keyword]
+            if pageNum <= self.limit:
                 yield self.createNextPageRequest(keyword=response.meta['keyword'], pn=pageNum)
         else:
             logging.info(response.status)

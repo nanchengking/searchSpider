@@ -98,7 +98,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         request = Request(url=''.join(url))
         request.meta['keyword'] = keyword
         request.meta['url'] = ''.join(url)
-        self.keywordsAndPages[keyword] = 10  # 每一个关键字开始爬取的都是第一页
+        self.keywordsAndPages[keyword] = 0  # 每一个关键字开始爬取的都是第一页
         return request
 
     def createNextPageRequest(self, keyword, pn):
@@ -108,7 +108,6 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :param pn: 0代表第一页，10代表第二页，20代表第三页……
         :return:一个request
         """
-        self.keywordsAndPages[keyword] += 10  # 每新建一个requet，都要把这个关键字的页面加一页
         tem = self.baseURL
         tem[1] = keyword
         url = ''.join(tem) + '&pn=' + str(pn)
@@ -126,7 +125,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"百度搜索"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = self.getUnicode(result.xpath("h3[@class]/a[@href]/@href").extract()[0])
+                item['targetUrl'] = self.getUnicode(''.join(result.xpath("h3[@class]/a[@href]/@href").extract()))
                 item['targetTitle'] =  self.getUnicode(''.join(result.xpath("h3[@class]/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
@@ -140,6 +139,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                         self.faceURLs.add(item['targetUrl'])
                         yield self.checkURLis200(url=item['targetUrl'],item=item)
             keyword = response.meta['keyword']
+            self.keywordsAndPages[keyword]+=10
             pageNum = self.keywordsAndPages[keyword]
             if pageNum < (self.limit * 10):
                 yield self.createNextPageRequest(keyword=response.meta['keyword'], pn=pageNum)
