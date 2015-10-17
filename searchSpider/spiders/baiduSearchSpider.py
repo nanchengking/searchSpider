@@ -20,7 +20,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, targetUrl=None, limit=4, projectId=-1, *args, **kwargs):
+    def __init__(self, keyword, filters='',targetUrl=None, limit=4, projectId=-1, *args, **kwargs):
         """
         爬虫用来在百度搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -37,15 +37,25 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         elif isinstance(keyword, list):
             keywords = keyword
         else:
-            logging.info(u'传入keyword参数不合法！无法初始化百度爬虫')
-            return
+            logging.error(u'传入keyword参数不合法！无法初始化百度爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化百度爬虫')
         if not keywords:
-            logging.info(u'传入keyword参数不合法！无法初始化百度爬虫')
-            return
+            logging.error(u'传入keyword参数不合法！无法初始化百度爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化百度爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
-        logging.error(keywords)
+        if isinstance(filters,str):
+            self.filters= keyword.split(' ')
+        else:
+            logging.error(u'传入filters参数不合法，必须为str！无法初始化百度爬虫')
+            self.closed(u'传入filters参数不合法，必须为str！无法初始化百度爬虫')
+        if len(self.filters)<1:
+            logging.error(u'传入filters参数为空！无法初始化百度爬虫')
+            self.closed(u'传入filters参数为空！无法初始化百度爬虫')
+        logging.info(u"keywods is : %s"%keywords)
         super(BaiduSearchSpider, self).__init__(*args, **kwargs)
+        self.realURLs=set()
+        self.faceURLs=set()
         self.startTime = datetime.datetime.now()
         self.num = 0
         self.limit = limit
@@ -102,7 +112,11 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 item['checkStatus'] = 0
                 item['searchTask'] = 0
                 item['project'] = self.projectId
-                yield item
+                if self.filter(targetTitle=item['targetTitle']):
+                    logging.info(u"===开始检测url===")
+                    if not item['targetUrl'] in self.faceURLs:#去重操作
+                        self.faceURLs.add(item['targetUrl'])
+                        yield self.checkURLis200(url=item['targetUrl'],item=item)
             keyword = response.meta['keyword']
             pageNum = self.keywordsAndPages[keyword]
             if pageNum < (self.limit * 10):
@@ -123,15 +137,57 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 logging.error(u'出现编码问题')
         return keyword
 
+    def checkURLis200(self,url,item):
+        """
+        名字起的不太好，这儿其实是一个调用getRealURL的中转站而已。
+        :param url:
+        :param item:
+        :return:
+        """
+
+        request=Request(url=url,callback=self.getRealURL)
+        request.meta['item']=item
+        logging.info(u"===发出一个请求真是url的请求===")
+        return request
+
     def getRealURL(self,response):
         """
         得到真实的（重定向之后的）url
+        当然，这儿还有一步去重的操作，把真实url相同的去除
         :param response:
         :return:
         """
-        pass
+        logging.info(u"======调用getRealURL======")
+        logging.info(response)
+        if response.status==200:
+            item=response.meta['item']
+            item['resultUrl']=response.url
+            if not response.url in self.realURLs:
+                self.realURLs.add(response.url)
+                return item
+
+
+    def filter(self,targetTitle):
+        """
+         使用简单的关键词过滤，如果存在关键字，就返回True，否则，返回false
+        :param targetTitle: 需要顾虑的部分，这儿选用标题
+        :return:
+        """
+        count=0
+        for filter in self.filters:
+            if self.getUnicode(filter) in self.getUnicode(targetTitle):
+                logging.info(u'===filter===')
+                count+=1#考虑可能需要分级，命中关键字多的，嫌疑也比较大，这儿暂时不加处理
+                logging.info(str(count))
+        if count>=1:
+            return True
+        else:
+            return False
+
 
     def closed(self, reason):
+        if reason:
+            logging.warning(reason)
         logging.info(u'现在解析了多少页面： %s' % self.num)
         logging.info(u'limit是： %s' % self.limit)
-        logging.info(u'spider closed 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
+        logging.info(u'baiduSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
