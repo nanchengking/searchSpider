@@ -56,6 +56,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
             self.closed(u'传入filters参数为空！无法初始化百度爬虫')
         logging.info(u"keywods is : %s"%keywords)
         logging.info(u"爬虫初始化成功")
+        self.isLinux=False
         super(BaiduSearchSpider, self).__init__(*args, **kwargs)
         self.initFilterPramas(whiteWords=whiteWords,blackWords=blackWords,blackURLs=blackURLs,whiteURLs=whiteURLs)
         self.realURLs=set()
@@ -92,7 +93,6 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :return:
         """
         keyword = self.getUnicode(keyword)
-        # logging.info(u"====调用: "+keyword)
         url = self.baseURL
         url[1] = keyword
         request = Request(url=''.join(url))
@@ -126,8 +126,8 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"百度搜索"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = result.xpath("h3[@class]/a[@href]/@href").extract()[0]
-                item['targetTitle'] =  ''.join(result.xpath("h3[@class]/a[@href]//text()").extract())
+                item['targetUrl'] = self.getUnicode(result.xpath("h3[@class]/a[@href]/@href").extract()[0])
+                item['targetTitle'] =  self.getUnicode(''.join(result.xpath("h3[@class]/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -152,11 +152,24 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :param keyword:
         :return:
         """
+
         if isinstance(keyword, str):
             try:
-                keyword= keyword.decode('gbk')
+                if self.isLinux:
+                    keyword= keyword.decode('utf-8')
+                else:
+                    keyword= keyword.decode('gbk')
             except BaseException,e:
+                if self.isLinux:
+                    self.isLinux=False
+                    keyword= keyword.decode('gbk')
+                else:
+                    self.isLinux=True
+                    keyword= keyword.decode('utf-8')
                 logging.error(u'出现编码问题')
+                logging.error(keyword)
+            finally:
+                return keyword
         return keyword
 
     def checkURLis200(self,url,item):
@@ -185,13 +198,13 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
             item['targetUrl']=response.url
             if self.whiteURLs and self.blackURLs and self.whiteWords:#只有这三个参数同时有效才调用下面的判断过滤逻辑
                 logging.info(u'===调用高级过滤方式===')
-                if not [i for i in self.whiteURLs if i in self.getUnicode(item['targetUrl'])]:#只要不是在url白名单内的数据，才进行下面的判断
-                    if self.getUnicode(item['targetUrl']) in self.blackURLs:#在url内的黑名单，一定是侵权
+                if not [i for i in self.whiteURLs if i in item['targetUrl']]:#只要不是在url白名单内的数据，才进行下面的判断
+                    if item['targetUrl'] in self.blackURLs:#在url内的黑名单，一定是侵权
                         if not response.url in self.realURLs:
                             self.realURLs.add(response.url)
                             return item
                     else:#不在url黑名单，需要判断是否有恶搞倾向
-                        if not [i for i in self.whiteWords if i in self.getUnicode(item['targetTitle'])]:#如果白名单关键字的里面没有，也就是，没有恶搞倾向
+                        if not [i for i in self.whiteWords if i in item['targetTitle']]:#如果白名单关键字的里面没有，也就是，没有恶搞倾向
                             if not response.url in self.realURLs:
                                 self.realURLs.add(response.url)
                                 return item
@@ -210,7 +223,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         """
         count=0
         for filter in self.filters:
-            if self.getUnicode(filter) in self.getUnicode(targetTitle):
+            if self.getUnicode(filter) in targetTitle:
                 logging.info(u'===过滤关键字filter is===%s'%self.getUnicode(filter))
                 count+=1#考虑可能需要分级，命中关键字多的，嫌疑也比较大，这儿暂时不加处理
                 logging.info(str(count))
@@ -222,6 +235,8 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
     def closed(self, reason):
         if reason:
             logging.warning(reason)
+        logging.info(u"现在有多少self.realURLs： %s"%len(self.realURLs))
+        logging.info(u"现在有多少self.faceURLs： %s"%len(self.faceURLs))
         logging.info(u'现在解析了多少页面： %s' % self.num)
         logging.info(u'limit是： %s' % self.limit)
         logging.info(u'baiduSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
