@@ -15,17 +15,23 @@ import datetime
 
 class BaiduSearchSpider(scrapy.spiders.Spider):
     name = 'baiduSearch'
-    allow_domains = ['baidu.com']
+    # allow_domains = ['baidu.com']
 
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, filters='',targetUrl=None, limit=4, projectId=-1, *args, **kwargs):
+    def __init__(self, keyword, filters='',blackWords='',whiteWords='',blackURLs='',whiteURLs='',targetUrl=None, limit=4, projectId=-1, *args, **kwargs):
         """
         爬虫用来在百度搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
+        :param filters: 标准过滤方式，目标item存在任意一个filters里面的关键字就有可能侵权
+        :param blackWords: 存在该关键字就一定是侵权，暂时不处理
+        :param whiteWords: 存在该关键字就一定不会是侵权
+        :param blackURLs: 该域名的网站都是侵权的
+        :param whiteURLs: 该域名的网站都不是侵权的
         :param targetUrl: 有没有需要直接爬取的链接，暂时不处理
-        :param limit: 最多显示多少页
+        :param limit: 最多抓取多少页
+        :param projectId: 项目id
         :param args:
         :param kwargs:
         :return:
@@ -37,23 +43,21 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         elif isinstance(keyword, list):
             keywords = keyword
         else:
-            logging.error(u'传入keyword参数不合法！无法初始化百度爬虫')
             self.closed(u'传入keyword参数不合法！无法初始化百度爬虫')
         if not keywords:
-            logging.error(u'传入keyword参数不合法！无法初始化百度爬虫')
             self.closed(u'传入keyword参数不合法！无法初始化百度爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
         if isinstance(filters,str):
-            self.filters= keyword.split(' ')
+            self.filters= filters.split(' ')
         else:
-            logging.error(u'传入filters参数不合法，必须为str！无法初始化百度爬虫')
             self.closed(u'传入filters参数不合法，必须为str！无法初始化百度爬虫')
         if len(self.filters)<1:
-            logging.error(u'传入filters参数为空！无法初始化百度爬虫')
             self.closed(u'传入filters参数为空！无法初始化百度爬虫')
         logging.info(u"keywods is : %s"%keywords)
+        logging.info(u"爬虫初始化成功")
         super(BaiduSearchSpider, self).__init__(*args, **kwargs)
+        self.initFilterPramas(whiteWords=whiteWords,blackWords=blackWords,blackURLs=blackURLs,whiteURLs=whiteURLs)
         self.realURLs=set()
         self.faceURLs=set()
         self.startTime = datetime.datetime.now()
@@ -62,6 +66,24 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         self.keywordsAndPages = {}
         self.baseURL = ['http://www.baidu.com/s?wd=', '']
         self.requests = map(self.initStartRequests, keywords)
+
+    def initFilterPramas(self,whiteWords,blackWords,blackURLs,whiteURLs):
+        """
+        初始化一些过滤参数
+        :param whiteWords: 白名单关键字
+        :param blackWords: 黑名单关键字，暂时不处理
+        :param blackURLs: 黑名单域名
+        :param whiteURLs: 白名单域名
+        :return:
+        """
+        if isinstance(whiteWords,str):
+            self.whiteWords=map(self.getUnicode,whiteWords.split(' '))
+        if isinstance(blackWords,str):
+            self.blackWords=map(self.getUnicode,blackWords.split(' '))
+        if isinstance(blackURLs,str):
+            self.blackURLs= map(self.getUnicode,blackURLs.split(' '))
+        if isinstance(whiteURLs,str):
+            self.whiteURLs= map(self.getUnicode,whiteURLs.split(' '))
 
     def initStartRequests(self, keyword):
         """
@@ -144,27 +166,40 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :param item:
         :return:
         """
-
-        request=Request(url=url,callback=self.getRealURL)
+        request=Request(url=url,callback=self.getRealURLAndDoFilter)
         request.meta['item']=item
         logging.info(u"===发出一个请求真是url的请求===")
         return request
 
-    def getRealURL(self,response):
+    def getRealURLAndDoFilter(self,response):
         """
         得到真实的（重定向之后的）url
+        同时负责大部分过滤操作！！！
         当然，这儿还有一步去重的操作，把真实url相同的去除
         :param response:
         :return:
         """
-        logging.info(u"======调用getRealURL======")
-        logging.info(response)
+        logging.info(u"======调用getRealURLAndDoFilter======")
         if response.status==200:
             item=response.meta['item']
-            item['resultUrl']=response.url
-            if not response.url in self.realURLs:
-                self.realURLs.add(response.url)
-                return item
+            item['targetUrl']=response.url
+            if self.whiteURLs and self.blackURLs and self.whiteWords:#只有这三个参数同时有效才调用下面的判断过滤逻辑
+                logging.info(u'===调用高级过滤方式===')
+                if not [i for i in self.whiteURLs if i in self.getUnicode(item['targetUrl'])]:#只要不是在url白名单内的数据，才进行下面的判断
+                    if self.getUnicode(item['targetUrl']) in self.blackURLs:#在url内的黑名单，一定是侵权
+                        if not response.url in self.realURLs:
+                            self.realURLs.add(response.url)
+                            return item
+                    else:#不在url黑名单，需要判断是否有恶搞倾向
+                        if not [i for i in self.whiteWords if i in self.getUnicode(item['targetTitle'])]:#如果白名单关键字的里面没有，也就是，没有恶搞倾向
+                            if not response.url in self.realURLs:
+                                self.realURLs.add(response.url)
+                                return item
+            else:#上面三个参数无效，这儿就直接进行简单的item收集
+                logging.info(u'===调用普通过滤方式===')
+                if not response.url in self.realURLs:
+                    self.realURLs.add(response.url)
+                    return item
 
 
     def filter(self,targetTitle):
@@ -176,14 +211,13 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         count=0
         for filter in self.filters:
             if self.getUnicode(filter) in self.getUnicode(targetTitle):
-                logging.info(u'===filter===')
+                logging.info(u'===过滤关键字filter is===%s'%self.getUnicode(filter))
                 count+=1#考虑可能需要分级，命中关键字多的，嫌疑也比较大，这儿暂时不加处理
                 logging.info(str(count))
         if count>=1:
             return True
         else:
             return False
-
 
     def closed(self, reason):
         if reason:
