@@ -47,10 +47,9 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Enable or disable spider middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
-# SPIDER_MIDDLEWARES = {
-#    'searchSpider.middlewares.MyCustomSpiderMiddleware': 543,
-# }
-
+SPIDER_MIDDLEWARES = {
+'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None,
+}
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 # DOWNLOADER_MIDDLEWARES = {

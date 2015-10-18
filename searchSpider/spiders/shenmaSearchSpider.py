@@ -185,7 +185,7 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         """
         request = Request(url=url, callback=self.getRealURLAndDoFilter)
         request.meta['item'] = item
-        logging.info(u"===发出一个请求真是url的请求===")
+        request.meta['dont_redirect'] = True
         return request
 
     def getRealURLAndDoFilter(self, response):
@@ -197,26 +197,29 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         :return:
         """
         logging.info(u"======调用getRealURLAndDoFilter======")
-        if response.status == 200:
-            item = response.meta['item']
+        item = response.meta['item']
+        if "Location" in response.headers:
+            item['targetUrl'] = response.headers["Location"]
+        else :
             item['targetUrl'] = response.url
-            if self.whiteURLs and self.blackURLs and self.whiteWords:  # 只有这三个参数同时有效才调用下面的判断过滤逻辑
-                logging.info(u'===调用高级过滤方式===')
-                if not [i for i in self.whiteURLs if i in item['targetUrl']]:  # 只要不是在url白名单内的数据，才进行下面的判断
-                    if [i for i in self.blackURLs if i in item['targetUrl']]:  # 在url内的黑名单，一定是侵权
-                        if not response.url in self.realURLs:
-                            self.realURLs.add(response.url)
+
+        if self.whiteURLs and self.blackURLs and self.whiteWords:  # 只有这三个参数同时有效才调用下面的判断过滤逻辑
+            logging.info(u'===调用高级过滤方式===')
+            if not [i for i in self.whiteURLs if i in item['targetUrl']]:  # 只要不是在url白名单内的数据，才进行下面的判断
+                if [i for i in self.blackURLs if i in item['targetUrl']]:  # 在url内的黑名单，一定是侵权
+                    if not item['targetUrl'] in self.realURLs:
+                        self.realURLs.add(item['targetUrl'])
+                        return item
+                else:  # 不在url黑名单，需要判断是否有恶搞倾向
+                    if not [i for i in self.whiteWords if i in item['targetTitle']]:  # 如果白名单关键字的里面没有，也就是，没有恶搞倾向
+                        if not item['targetUrl'] in self.realURLs:
+                            self.realURLs.add(item['targetUrl'])
                             return item
-                    else:  # 不在url黑名单，需要判断是否有恶搞倾向
-                        if not [i for i in self.whiteWords if i in item['targetTitle']]:  # 如果白名单关键字的里面没有，也就是，没有恶搞倾向
-                            if not response.url in self.realURLs:
-                                self.realURLs.add(response.url)
-                                return item
-            else:  # 上面三个参数无效，这儿就直接进行简单的item收集
-                logging.info(u'===调用普通过滤方式===')
-                if not response.url in self.realURLs:
-                    self.realURLs.add(response.url)
-                    return item
+        else:  # 上面三个参数无效，这儿就直接进行简单的item收集
+            logging.info(u'===调用普通过滤方式===')
+            if not item['targetUrl'] in self.realURLs:
+                self.realURLs.add(item['targetUrl'])
+                return item
 
     def filter(self, targetTitle):
         """
