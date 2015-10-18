@@ -234,7 +234,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
 
     def closed(self, reason):
         if reason:
-            logging.warning("爬虫运行结束： %s" % reason)
+            logging.warning(u"百度爬虫运行结束： %s" % reason)
         logging.info(u"现在有多少self.realURLs： %s" % len(self.realURLs))
         logging.info(u"现在有多少self.faceURLs： %s" % len(self.faceURLs))
         logging.info(u'现在解析了多少页面： %s' % self.num)
