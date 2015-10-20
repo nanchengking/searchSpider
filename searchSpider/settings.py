@@ -9,10 +9,29 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
+SPLIT_SIGN=','
 BOT_NAME = 'searchSpider'
 
 SPIDER_MODULES = ['searchSpider.spiders']
 NEWSPIDER_MODULE = 'searchSpider.spiders'
+
+#日志设置开始
+# import logging
+# logging.basicConfig(level=logging.DEBUG,
+#                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+#                     datefmt='%a, %d %b %Y %H:%M:%S',
+#                     )
+#日志设置结束
+
+#MYSQL设置
+# 开始intelliwatch管理员账号密码：
+MYSQL_HOST='localhost'
+MYSQL_USER='root'
+MYSQL_PASSWD='*******'
+MYSQL_PORT=3306
+MYSQL_CHARSET='utf8'
+MYSQL_DB='test'
+#MYSQL设置结束
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

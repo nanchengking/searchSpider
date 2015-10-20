@@ -40,7 +40,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         keywords = []
         self.projectId = projectId
         if isinstance(keyword, str):
-            keywords = keyword.split(' ')
+            keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
             keywords = keyword
         else:
@@ -50,7 +50,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         if not isinstance(limit, int):
             limit = int(limit)
         if isinstance(filters, str):
-            self.filters = filters.split(' ')
+            self.filters = filters.split(settings.SPLIT_SIGN)
         else:
             self.closed(u'传入filters参数不合法，必须为str！无法初始化好搜爬虫')
         if len(self.filters) < 1:
@@ -81,13 +81,13 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         :return:
         """
         if isinstance(whiteWords, str):
-            self.whiteWords = map(self.getUnicode, whiteWords.split(' '))
+            self.whiteWords = map(self.getUnicode, whiteWords.split(settings.SPLIT_SIGN))
         if isinstance(blackWords, str):
-            self.blackWords = map(self.getUnicode, blackWords.split(' '))
+            self.blackWords = map(self.getUnicode, blackWords.split(settings.SPLIT_SIGN))
         if isinstance(blackURLs, str):
-            self.blackURLs = map(self.getUnicode, blackURLs.split(' '))
+            self.blackURLs = map(self.getUnicode, blackURLs.split(settings.SPLIT_SIGN))
         if isinstance(whiteURLs, str):
-            self.whiteURLs = map(self.getUnicode, whiteURLs.split(' '))
+            self.whiteURLs = map(self.getUnicode, whiteURLs.split(settings.SPLIT_SIGN))
 
     def initStartRequests(self, keyword):
         """
