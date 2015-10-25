@@ -11,6 +11,7 @@ import logging
 from searchSpider import settings
 from searchSpider.items import *
 import datetime
+import MySQLdb
 
 
 class BaiduSearchSpider(scrapy.spiders.Spider):
@@ -21,7 +22,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         return self.requests
 
     def __init__(self, keyword, filters='', blackWords='', whiteWords='', blackURLs='', whiteURLs='', targetUrl=None,
-                 limit=4, projectId=-1, *args, **kwargs):
+                 limit=4, projectId=-1, searchTaskId=-1, *args, **kwargs):
         """
         爬虫用来在百度搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -39,6 +40,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         """
         keywords = []
         self.projectId = projectId
+        self.searchTaskId = searchTaskId
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -78,6 +80,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :param whiteURLs: 白名单域名
         :return:
         """
+
         if isinstance(whiteWords, str):
             self.whiteWords = map(self.getUnicode, whiteWords.split(settings.SPLIT_SIGN))
         if isinstance(blackWords, str):
@@ -86,6 +89,37 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
             self.blackURLs = map(self.getUnicode, blackURLs.split(settings.SPLIT_SIGN))
         if isinstance(whiteURLs, str):
             self.whiteURLs = map(self.getUnicode, whiteURLs.split(settings.SPLIT_SIGN))
+
+        conn = MySQLdb.Connect(host=settings.MYSQL_HOST,
+                                    port=settings.MYSQL_PORT,
+                                    user=settings.MYSQL_USER,
+                                    passwd=settings.MYSQL_PASSWD,
+                                    db=settings.MYSQL_DB,
+                                    charset=settings.MYSQL_CHARSET)
+        cur = conn.cursor()
+        cur.execute("select `name`, `type`, `whiteorblack` from `web_whiteblacklist` where `status` = 1")
+        results = cur.fetchall()
+        for row in results:
+            name = row[0]
+            type = row[1]
+            whiteorblack = row[2]
+            if type == 0: # 标题
+                if whiteorblack == 0: # 白名单
+                    self.whiteWords.append(self.getUnicode(name))
+                elif whiteorblack == 1: # 黑名单
+                    self.blackWords.append(self.getUnicode(name))
+            elif type == 1: # url
+                if whiteorblack == 0: # 白名单
+                    self.whiteURLs.append(self.getUnicode(name))
+                elif whiteorblack == 1:
+                    self.blackURLs.append(self.getUnicode(name))
+        cur.close()
+        conn.close()
+        logging.info("White words: %s" % self.whiteWords)
+        logging.info("Black words: %s" % self.blackWords)
+        logging.info("White urls: %s" % self.whiteURLs)
+        logging.info("Black urls: %s" % self.blackURLs)
+
 
     def initStartRequests(self, keyword):
         """
@@ -101,6 +135,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         request.meta['url'] = ''.join(url)
         self.keywordsAndPages[keyword] = 0  # 每一个关键字开始爬取的都是第一页
         return request
+
 
     def createNextPageRequest(self, keyword, pn):
         """
@@ -132,8 +167,8 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
                 item['checkStatus'] = 0
-                item['searchTask'] = 0
-                item['project'] = self.projectId
+                item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
+                item['project'] = None if self.projectId == -1 else self.projectId
                 if self.filter(targetTitle=item['targetTitle']):
                     logging.info(u"===开始检测url===")
                     if not item['targetUrl'] in self.faceURLs:  # 去重操作

@@ -16,6 +16,7 @@ import settings
 class SearchspiderPipeline(object):
     def process_item(self, item, spider):
         try:
+            logging.info("insert into db")
             self.cur.execute("""INSERT INTO web_searchspider_results(
              platform,keyword,resultUrl,
              targetUrl,targetTitle,createDate,
@@ -34,7 +35,7 @@ class SearchspiderPipeline(object):
             ))
             self.conn.commit()
         except BaseException, e:
-            logging.error(u"数据插入出错")
+            logging.error(u"数据插入出错,%s", e)
             self.conn.rollback()
         return item
 

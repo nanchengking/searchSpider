@@ -27,10 +27,10 @@ NEWSPIDER_MODULE = 'searchSpider.spiders'
 # 开始intelliwatch管理员账号密码：
 MYSQL_HOST='localhost'
 MYSQL_USER='root'
-MYSQL_PASSWD='*******'
+MYSQL_PASSWD=''
 MYSQL_PORT=3306
 MYSQL_CHARSET='utf8'
-MYSQL_DB='test'
+MYSQL_DB='intelliwatch'
 #MYSQL设置结束
 
 
@@ -105,3 +105,12 @@ ITEM_PIPELINES = {
 # HTTPCACHE_DIR='httpcache'
 # HTTPCACHE_IGNORE_HTTP_CODES=[]
 # HTTPCACHE_STORAGE='scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+try:
+    import MySQLdb as Database
+except ImportError as e:
+    try:
+        import pymysql
+        pymysql.install_as_MySQLdb()
+    except ImportError:
+        raise

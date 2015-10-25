@@ -1,6 +1,6 @@
 #searchSpiders
 <h3>
-scrapy crawl baiduSearch -a keyword="瓜皮,瓜皮猫" -a filters="瓜皮猫,豆瓣,可爱，贱,女神" -a blackURLs="douban" -a whiteURLs="baidu" -a whiteWords="瓜皮岛，酱，西瓜，养生" -a limit=5
+scrapy crawl baiduSearch -a keyword="瓜皮,瓜皮猫" -a filters="瓜皮猫,豆瓣,可爱,贱,女神" -a blackURLs="douban" -a whiteURLs="baidu" -a whiteWords="瓜皮岛,酱,西瓜,养生" -a limit=5
 </h3><br>
 <p style="color:red">
     1.每一个keyword里面的关键字，都会被搜索引擎独立搜索一次，<br>
@@ -14,7 +14,7 @@ scrapy crawl baiduSearch -a keyword="瓜皮,瓜皮猫" -a filters="瓜皮猫,豆
 <h4>关键字之间的分隔符在setting里面统一设置SPLIT_SIGN=','</h4><br>
 <h4>
 
-    建表语句： <br>
+  建表语句： <br>
   
   CREATE TABLE if not exists web_searchspider_results (<br>
    id int(11) PRIMARY KEY AUTO_INCREMENT,<br>
