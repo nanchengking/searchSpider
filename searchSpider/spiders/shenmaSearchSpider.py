@@ -23,7 +23,7 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         return self.requests
 
     def __init__(self, keyword, filters='', blackWords='', whiteWords='', blackURLs='', whiteURLs='', targetUrl=None,
-                 limit=4, projectId=-1, *args, **kwargs):
+                 limit=4, projectId=-1, searchTaskId=-1, *args, **kwargs):
         """
         爬虫用来在神马搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -41,6 +41,7 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         """
         keywords = []
         self.projectId = projectId
+        self.searchTaskId = searchTaskId
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -52,6 +53,7 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         if not isinstance(limit, int):
             limit = int(limit)
         if isinstance(filters, str):
+            logging.info("传入的filters参数值为：%s" % filters)
             self.filters = filters.split(settings.SPLIT_SIGN)
         else:
             self.closed(u'传入filters参数不合法，必须为str！无法初始化神马爬虫')
@@ -115,6 +117,14 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
                     self.blackURLs.append(self.getUnicode(name))
         cur.close()
         conn.close()
+        arr = [ x for x in self.whiteWords if x != '' ]
+        self.whiteWords = arr
+        arr = [ x for x in self.blackWords if x != '' ]
+        self.blackWords = arr
+        arr = [ x for x in self.whiteURLs if x != '' ]
+        self.whiteURLs = arr
+        arr = [ x for x in self.blackURLs if x != '' ]
+        self.blackURLs = arr
         logging.info("White words: %s" % self.whiteWords)
         logging.info("Black words: %s" % self.blackWords)
         logging.info("White urls: %s" % self.whiteURLs)
@@ -168,6 +178,7 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
                 item['processDate'] = datetime.datetime.now()
                 item['checkStatus'] = 0
                 item['searchTask'] = 0
+                item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = self.projectId
                 if self.filter(targetTitle=item['targetTitle']):
                     logging.info(u"===开始检测url===")
@@ -215,10 +226,15 @@ class ShenmaSearchSpider(scrapy.spiders.Spider):
         :param item:
         :return:
         """
-        request = Request(url=url, callback=self.getRealURLAndDoFilter)
-        request.meta['item'] = item
-        request.meta['dont_redirect'] = True
-        return request
+        if url != "":
+            logging.info('Check url is 200: %s' % url)
+            request = Request(url=url, callback=self.getRealURLAndDoFilter)
+            request.meta['item'] = item
+            request.meta['dont_redirect'] = True
+            return request
+        else:
+            return None
+
 
     def getRealURLAndDoFilter(self, response):
         """

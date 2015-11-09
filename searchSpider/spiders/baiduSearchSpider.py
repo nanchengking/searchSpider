@@ -52,6 +52,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         if not isinstance(limit, int):
             limit = int(limit)
         if isinstance(filters, str):
+            logging.info("传入的filters参数值为：%s" % filters)
             self.filters = filters.split(settings.SPLIT_SIGN)
         else:
             self.closed(u'传入filters参数不合法，必须为str！无法初始化百度爬虫')
@@ -115,6 +116,14 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                     self.blackURLs.append(self.getUnicode(name))
         cur.close()
         conn.close()
+        arr = [ x for x in self.whiteWords if x != '' ]
+        self.whiteWords = arr
+        arr = [ x for x in self.blackWords if x != '' ]
+        self.blackWords = arr
+        arr = [ x for x in self.whiteURLs if x != '' ]
+        self.whiteURLs = arr
+        arr = [ x for x in self.blackURLs if x != '' ]
+        self.blackURLs = arr
         logging.info("White words: %s" % self.whiteWords)
         logging.info("Black words: %s" % self.blackWords)
         logging.info("White urls: %s" % self.whiteURLs)
@@ -215,10 +224,14 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         :param item:
         :return:
         """
-        request = Request(url=url, callback=self.getRealURLAndDoFilter)
-        request.meta['item'] = item
-        request.meta['dont_redirect'] = True
-        return request
+        if url != "":
+            logging.info('Check url is 200: %s' % url)
+            request = Request(url=url, callback=self.getRealURLAndDoFilter)
+            request.meta['item'] = item
+            request.meta['dont_redirect'] = True
+            return request
+        else:
+            return None
 
     def getRealURLAndDoFilter(self, response):
         """

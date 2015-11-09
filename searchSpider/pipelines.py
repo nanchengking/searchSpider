@@ -4,6 +4,7 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import logging
+from django.utils.datetime_safe import strftime
 from searchSpider import settings
 import json
 from json import *
@@ -25,11 +26,11 @@ class SearchspiderPipeline(object):
              )
               VALUES(
               %s,%s,%s,
-              %s,%s,%s,
+              %s,%s,NOW(),
               %s,%s,%s,
               %s,%s)""", (
                 item['platform'], item['keyword'], item['resultUrl'],
-                item['targetUrl'], item['targetTitle'], item['createDate'],
+                item['targetUrl'], item['targetTitle'], # strftime(item['createDate'], "%Y-%m-%d %H:%M:%s",
                 item['processDate'], item['project'], item['searchTask'],
                 item['checkStatus'], item['status']
             ))
@@ -48,25 +49,25 @@ class SearchspiderPipeline(object):
                                     db=settings.MYSQL_DB,
                                     charset=settings.MYSQL_CHARSET)
         self.cur = self.conn.cursor()
-        self.cur.execute("""
-            CREATE TABLE if not exists web_searchspider_results (
-            id int(11) PRIMARY KEY AUTO_INCREMENT,
-            platform varchar(20) references web_platform(name),
-            keyword varchar(50) NOT NULL,
-            resultUrl varchar(500) DEFAULT NULL,
-            targetUrl varchar(500) NOT NULL,
-            targetTitle varchar(500) DEFAULT NULL,
-            username varchar(100) DEFAULT NULL,
-            fetchCode varchar(10) DEFAULT NULL,
-            createDate date NOT NULL,
-            searchTask_id int(11) references web_searchtask(id),
-            status int(11) NOT NULL,
-            processDate datetime DEFAULT NULL,
-            project_id int(11) references web_project(id),
-            checkStatus int(11) DEFAULT NULL
-            )
-        """)
-        self.conn.commit()
+        # self.cur.execute("""
+        #     CREATE TABLE if not exists web_searchspider_results (
+        #     id int(11) PRIMARY KEY AUTO_INCREMENT,
+        #     platform varchar(20) references web_platform(name),
+        #     keyword varchar(50) NOT NULL,
+        #     resultUrl varchar(500) DEFAULT NULL,
+        #     targetUrl varchar(500) NOT NULL,
+        #     targetTitle varchar(500) DEFAULT NULL,
+        #     username varchar(100) DEFAULT NULL,
+        #     fetchCode varchar(10) DEFAULT NULL,
+        #     createDate date NOT NULL,
+        #     searchTask_id int(11) references web_searchtask(id),
+        #     status int(11) NOT NULL,
+        #     processDate datetime DEFAULT NULL,
+        #     project_id int(11) references web_project(id),
+        #     checkStatus int(11) DEFAULT NULL
+        #     )
+        # """)
+        # self.conn.commit()
 
     def close_spider(self, spider):
         self.conn.commit()

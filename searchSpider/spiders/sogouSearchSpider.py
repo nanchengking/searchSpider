@@ -23,7 +23,7 @@ class SogouSearchSpider(scrapy.spiders.Spider):
         return self.requests
 
     def __init__(self, keyword, filters='', blackWords='', whiteWords='', blackURLs='', whiteURLs='', targetUrl=None,
-                 limit=4, projectId=-1, *args, **kwargs):
+                 limit=4, projectId=-1, searchTaskId=-1, *args, **kwargs):
         """
         爬虫用来在搜狗搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -41,6 +41,7 @@ class SogouSearchSpider(scrapy.spiders.Spider):
         """
         keywords = []
         self.projectId = projectId
+        self.searchTaskId = searchTaskId
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -52,6 +53,7 @@ class SogouSearchSpider(scrapy.spiders.Spider):
         if not isinstance(limit, int):
             limit = int(limit)
         if isinstance(filters, str):
+            logging.info("传入的filters参数值为：%s" % filters)
             self.filters = filters.split(settings.SPLIT_SIGN)
         else:
             self.closed(u'传入filters参数不合法，必须为str！无法初始化搜狗爬虫')
@@ -115,6 +117,14 @@ class SogouSearchSpider(scrapy.spiders.Spider):
                     self.blackURLs.append(self.getUnicode(name))
         cur.close()
         conn.close()
+        arr = [ x for x in self.whiteWords if x != '' ]
+        self.whiteWords = arr
+        arr = [ x for x in self.blackWords if x != '' ]
+        self.blackWords = arr
+        arr = [ x for x in self.whiteURLs if x != '' ]
+        self.whiteURLs = arr
+        arr = [ x for x in self.blackURLs if x != '' ]
+        self.blackURLs = arr
         logging.info("White words: %s" % self.whiteWords)
         logging.info("Black words: %s" % self.blackWords)
         logging.info("White urls: %s" % self.whiteURLs)
@@ -167,6 +177,7 @@ class SogouSearchSpider(scrapy.spiders.Spider):
                 item['processDate'] = datetime.datetime.now()
                 item['checkStatus'] = 0
                 item['searchTask'] = 0
+                item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = self.projectId
                 if self.filter(targetTitle=item['targetTitle']):
                     logging.info(u"===开始检测url===")
@@ -217,10 +228,14 @@ class SogouSearchSpider(scrapy.spiders.Spider):
         :param item:
         :return:
         """
-        request = Request(url=url, callback=self.getRealURLAndDoFilter)
-        request.meta['item'] = item
-        request.meta['dont_redirect'] = True
-        return request
+        if url != "":
+            logging.info('Check url is 200: %s' % url)
+            request = Request(url=url, callback=self.getRealURLAndDoFilter)
+            request.meta['item'] = item
+            request.meta['dont_redirect'] = True
+            return request
+        else:
+            return None
 
     def getRealURLAndDoFilter(self, response):
         """
@@ -246,16 +261,22 @@ class SogouSearchSpider(scrapy.spiders.Spider):
                 if [i for i in self.blackURLs if i in item['targetUrl']]:  # 在url内的黑名单，一定是侵权
                     if not response.url in self.realURLs:
                         self.realURLs.add(response.url)
+                        logging.info(u"找到一个侵权链接（url黑名单）：%s" % item['targetUrl'])
                         return item
                 else:  # 不在url黑名单，需要判断是否有恶搞倾向
                     if not [i for i in self.whiteWords if i in item['targetTitle']]:  # 如果白名单关键字的里面没有，也就是，没有恶搞倾向
                         if not response.url in self.realURLs:
                             self.realURLs.add(response.url)
+                            logging.info(u"找到一个侵权链接（url白名单没有）：%s" % item['targetUrl'])
                             return item
+                        else:
+                            logging.info(u"url白名单拦截：%s" % item['targetUrl'])
+
         else:  # 上面三个参数无效，这儿就直接进行简单的item收集
             logging.info(u'===调用普通过滤方式===')
             if not response.url in self.realURLs:
                 self.realURLs.add(response.url)
+                logging.info(u"找到一个侵权链接：%s" % item['targetUrl'])
                 return item
 
     def filter(self, targetTitle):
