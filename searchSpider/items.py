@@ -25,7 +25,7 @@ class SearchspiderItem(scrapy.Item):
 
 class MusicSearchspiderItem(scrapy.Item):
     # define the fields for your item here like:
-    name = scrapy.Field()#歌曲名字
+    program = scrapy.Field()#歌曲名字
     author = scrapy.Field()#作者
     album = scrapy.Field()#专辑
     platform = scrapy.Field()#平台

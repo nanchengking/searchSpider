@@ -18,22 +18,40 @@ class SearchspiderPipeline(object):
     def process_item(self, item, spider):
         try:
             logging.info("insert into db")
-            self.cur.execute("""INSERT INTO web_searchspider_results(
-             platform,keyword,resultUrl,
-             targetUrl,targetTitle,createDate,
-             processDate,project_id,searchTask_id,
-             checkStatus,status
-             )
-              VALUES(
-              %s,%s,%s,
-              %s,%s,NOW(),
-              %s,%s,%s,
-              %s,%s)""", (
-                item['platform'], item['keyword'], item['resultUrl'],
-                item['targetUrl'], item['targetTitle'], # strftime(item['createDate'], "%Y-%m-%d %H:%M:%s",
-                item['processDate'], item['project'], item['searchTask'],
-                item['checkStatus'], item['status']
-            ))
+            if isinstance(item,SearchspiderItem):
+                self.cur.execute("""INSERT INTO web_searchspider_results(
+                 platform,keyword,resultUrl,
+                 targetUrl,targetTitle,createDate,
+                 processDate,project_id,searchTask_id,
+                 checkStatus,status
+                 )
+                  VALUES(
+                  %s,%s,%s,
+                  %s,%s,NOW(),
+                  %s,%s,%s,
+                  %s,%s)""", (
+                    item['platform'], item['keyword'], item['resultUrl'],
+                    item['targetUrl'], item['targetTitle'], # strftime(item['createDate'], "%Y-%m-%d %H:%M:%s",
+                    item['processDate'], item['project'], item['searchTask'],
+                    item['checkStatus'], item['status']
+                ))
+            else:
+                self.cur.execute("""INSERT INTO web_searchspider_results(
+                 platform,keyword,resultUrl,
+                 targetUrl,program,createDate,
+                 processDate,project_id,searchTask_id,
+                 checkStatus,status,author,album
+                 )
+                  VALUES(
+                  %s,%s,%s,
+                  %s,%s,NOW(),
+                  %s,%s,%s,
+                  %s,%s,%s,%s)""", (
+                    item['platform'], item['keyword'], item['resultUrl'],
+                    item['targetUrl'], item['program'], # strftime(item['createDate'], "%Y-%m-%d %H:%M:%s",
+                    item['processDate'], item['project'], item['searchTask'],
+                    item['checkStatus'], item['status'],item['author'],item['album']
+                ))
             self.conn.commit()
         except BaseException, e:
             logging.error(u"数据插入出错,%s", e)
@@ -63,7 +81,7 @@ class SearchspiderPipeline(object):
         #     targetTitle varchar(500) DEFAULT NULL,
         #     username varchar(100) DEFAULT NULL,
         #     fetchCode varchar(10) DEFAULT NULL,
-        #     createDate date NOT NULL,
+        #     createDate datetime NOT NULL,
         #     searchTask_id int(11) references web_searchtask(id),
         #     status int(11) NOT NULL,
         #     processDate datetime DEFAULT NULL,

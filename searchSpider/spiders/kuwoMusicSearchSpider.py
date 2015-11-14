@@ -14,9 +14,9 @@ import datetime
 import MySQLdb
 
 
-class BaiduMusicSearchSpider(scrapy.spiders.Spider):
-    name = 'baiduMusicSearch'
-    allow_domains = ['baidu.com']
+class KuwoMusicSearchSpider(scrapy.spiders.Spider):
+    name = 'kuwoMusicSearch'
+    allow_domains = ['kuwo.cn']
 
     def start_requests(self):
         return self.requests
@@ -24,7 +24,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
     def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, *args,
                  **kwargs):
         """
-        爬虫用来在百度音乐搜索页面爬取一系列的关键字
+        爬虫用来在酷我音乐搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
         :param targetUrl: 有没有需要直接爬取的链接，暂时不处理
         :param limit: 最多抓取多少页
@@ -41,16 +41,16 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         elif isinstance(keyword, list):
             keywords = keyword
         else:
-            self.closed(u'传入keyword参数不合法！无法初始化百度音乐爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化酷我音乐爬虫')
         if not keywords:
-            self.closed(u'传入keyword参数不合法！无法初始化百度音乐爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化酷我音乐爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
         if (not name) or (not author):
-            self.closed(u'传入name 或 author参数不合法！无法初始化百度音乐爬虫')
+            self.closed(u'传入name 或 author参数不合法！无法初始化酷我音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
-        super(BaiduMusicSearchSpider, self).__init__(*args, **kwargs)
-        self.isLinux = os.name=='posix'#判断是否时linux系统
+        super(KuwoMusicSearchSpider, self).__init__(*args, **kwargs)
+        self.isLinux = os.name == 'posix'  # 判断是否时linux系统
         self.songsURLS = set()
         self.startTime = datetime.datetime.now()
         self.num = 0
@@ -59,9 +59,9 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         self.name = self.getUnicode(name)
         self.author = self.getUnicode(author)
         self.album = self.getUnicode(album)
-        self.file1=open('jsons.json','wb')
-        logging.info(u"====百度音乐爬虫初始化成功====")
-        self.baseURL = ['http://music.baidu.com/search?key=', '']
+        self.file1 = open('jsons.json', 'wb')
+        logging.info(u"====酷我音乐爬虫初始化成功====")
+        self.baseURL = ['http://sou.kuwo.cn/ws/NSearch?type=music&key=', '']
         self.requests = map(self.initStartRequests, keywords)
 
     def initStartRequests(self, keyword):
@@ -82,20 +82,20 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
     def parse(self, response):
         self.num += 1
         if response.status == 200:
-            results = response.css("div.song-item")
+            results = response.css("div.list ul li.clearfix")
             for result in results:
                 item = MusicSearchspiderItem()
-                item['platform'] = u"百度音乐"
+                item['platform'] = u"酷我音乐"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = u"http://music.baidu.com" + self.getUnicode(
-                    ''.join(result.xpath("./span[@class='song-title']/a[@data-songdata]/@href").extract())).strip()
+                item['targetUrl'] = self.getUnicode(
+                    ''.join(result.xpath("./p[@class='m_name']/a[@title]/@href").extract())).strip()
                 item['program'] = self.getUnicode(
-                    ''.join(result.xpath("./span[@class='song-title']//text()").extract())).strip()
+                    ''.join(result.xpath("./p[@class='m_name']/a[@title]/@title").extract())).strip()
                 item['album'] = self.getUnicode(
-                    ''.join(result.xpath("./span[@class='album-title']//text()").extract())).strip()
+                    ''.join(result.xpath("./p[@class='a_name']/a[@title]/@title").extract())).strip()
                 item['author'] = self.getUnicode(
-                    ''.join(result.xpath("./span[@class='singer']//text()").extract())).strip()
+                    ''.join(result.xpath("./p[@class='s_name']/a[@title]/@title").extract())).strip()
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -107,12 +107,13 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
                         self.songsURLS.add(item['targetUrl'])
                         yield item
 
-            if response.xpath("//div[@class='page-inner']/a[@class='page-navigator-next']/@href"):
+            nextA=response.css("div.page a")[-2]
+            if nextA.xpath("./text()")[0].extract().strip()==u'下一页':#判断是否存在下一页
                 keyword = response.meta['keyword']
                 self.keywordsAndPages[keyword] += 1
                 pageNum = self.keywordsAndPages[keyword]
-                nextURL = u"http://music.baidu.com" + self.getUnicode(''.join(response.xpath(
-                    "//div[@class='page-inner']/a[@class='page-navigator-next']/@href").extract())).strip()
+                nextURL = u'http://sou.kuwo.cn'+self.getUnicode(''.join(
+                    nextA.xpath("./@href").extract())).strip()
                 if pageNum < (self.limit):
                     logging.info(u"==现在爬取的关键字是: %s", keyword)
                     logging.info(u"==现在爬取的关键字的page num是: %s", pageNum)
@@ -132,12 +133,12 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         :return:
         """
         if (self.name in targetTitle and self.author in author) or (
-                self.name in targetTitle and self.author in targetTitle):
+                        self.name in targetTitle and self.author in targetTitle):
             logging.debug(u"===我们抓到一只！！！===")
             self.file1.write(self.name)
-            self.file1.write(u"targetTitle: "+targetTitle)
+            self.file1.write(u"targetTitle: " + targetTitle)
             self.file1.write(self.author)
-            self.file1.write(u"--author: "+author)
+            self.file1.write(u"--author: " + author)
             self.file1.write('\n')
             self.file1.flush()
             return True
@@ -172,8 +173,8 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
 
     def closed(self, reason):
         if reason:
-            logging.warning(u"百度音乐爬虫运行结束： %s" % reason)
+            logging.warning(u"酷我音乐爬虫运行结束： %s" % reason)
         logging.info(u"现在有多少songsURLS(抓取到了多少首歌)： %s" % len(self.songsURLS))
         logging.info(u'现在解析了多少页面： %s' % self.num)
         logging.info(u'limit是： %s' % self.limit)
-        logging.info(u'baiduMusicSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
+        logging.info(u'XiamiMusicSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
