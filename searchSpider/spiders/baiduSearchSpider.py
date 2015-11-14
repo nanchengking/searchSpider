@@ -60,8 +60,8 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
             self.closed(u'传入filters参数为空！无法初始化百度爬虫')
         logging.info(u"keywods is : %s" % keywords)
         logging.info(u"百度爬虫初始化成功")
-        self.isLinux = False
         super(BaiduSearchSpider, self).__init__(*args, **kwargs)
+        self.isLinux = os.name=='posix'#判断是否时linux系统
         self.initFilterPramas(whiteWords=whiteWords, blackWords=blackWords, blackURLs=blackURLs, whiteURLs=whiteURLs)
         self.realURLs = set()
         self.faceURLs = set()
