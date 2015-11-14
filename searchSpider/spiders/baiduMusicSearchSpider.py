@@ -48,18 +48,19 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
             limit = int(limit)
         if (not name) or (not author):
             self.closed(u'传入name 或 author参数不合法！无法初始化百度音乐爬虫')
-        self.name = self.getUnicode(name)
-        self.author = self.getUnicode(author)
-        self.album = self.getUnicode(album)
         self.isLinux = False
         logging.info(u"keywods is : %s" % keywords)
-        logging.info(u"====百度音乐爬虫初始化成功====")
         super(BaiduMusicSearchSpider, self).__init__(*args, **kwargs)
         self.songsURLS = set()
         self.startTime = datetime.datetime.now()
         self.num = 0
         self.limit = limit
         self.keywordsAndPages = {}
+        self.name = self.getUnicode(name)
+        self.author = self.getUnicode(author)
+        self.album = self.getUnicode(album)
+        self.file1=open('jsons.json','wb')
+        logging.info(u"====百度音乐爬虫初始化成功====")
         self.baseURL = ['http://music.baidu.com/search?key=', '']
         self.requests = map(self.initStartRequests, keywords)
 
@@ -102,7 +103,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
                 item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = None if self.projectId == -1 else self.projectId
                 if not item['targetUrl'] in self.songsURLS:  # 去重操作
-                    if self.filters(targetTitle=item['targetTitle'], author=item['album']):  # 过滤操作
+                    if self.filters(targetTitle=item['targetTitle'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])
                         yield item
 
@@ -132,6 +133,13 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         """
         if (self.name in targetTitle and self.author in author) or (
                 self.name in targetTitle and self.author in targetTitle):
+            logging.debug(u"===我们抓到一只！！！===")
+            self.file1.write(self.name)
+            self.file1.write(u"targetTitle: "+targetTitle)
+            self.file1.write(self.author)
+            self.file1.write(u"--author: "+author)
+            self.file1.write('\n')
+            self.file1.flush()
             return True
         else:
             return False
