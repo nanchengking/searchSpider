@@ -23,7 +23,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         return self.requests
 
     def __init__(self, keyword, filters='', blackWords='', whiteWords='', blackURLs='', whiteURLs='', targetUrl=None,
-                 limit=4, projectId=-1, searchTaskId=-1, *args, **kwargs):
+                 limit=4, projectId=-1, searchTaskId=-1, bwlistDisabled=0, *args, **kwargs):
         """
         爬虫用来在好搜搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -42,6 +42,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         keywords = []
         self.projectId = projectId
         self.searchTaskId = searchTaskId
+        self.bwlistDisabled = bwlistDisabled
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -92,32 +93,32 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
             self.blackURLs = map(self.getUnicode, blackURLs.split(settings.SPLIT_SIGN))
         if isinstance(whiteURLs, str):
             self.whiteURLs = map(self.getUnicode, whiteURLs.split(settings.SPLIT_SIGN))
-
-        conn = MySQLdb.Connect(host=settings.MYSQL_HOST,
-                                    port=settings.MYSQL_PORT,
-                                    user=settings.MYSQL_USER,
-                                    passwd=settings.MYSQL_PASSWD,
-                                    db=settings.MYSQL_DB,
-                                    charset=settings.MYSQL_CHARSET)
-        cur = conn.cursor()
-        cur.execute("select `name`, `type`, `whiteorblack` from `web_whiteblacklist` where `status` = 1")
-        results = cur.fetchall()
-        for row in results:
-            name = row[0]
-            type = row[1]
-            whiteorblack = row[2]
-            if type == 0: # 标题
-                if whiteorblack == 0: # 白名单
-                    self.whiteWords.append(self.getUnicode(name))
-                elif whiteorblack == 1: # 黑名单
-                    self.blackWords.append(self.getUnicode(name))
-            elif type == 1: # url
-                if whiteorblack == 0: # 白名单
-                    self.whiteURLs.append(self.getUnicode(name))
-                elif whiteorblack == 1:
-                    self.blackURLs.append(self.getUnicode(name))
-        cur.close()
-        conn.close()
+        if self.bwlistDisabled == 0 or self.bwlistDisabled == "0":
+            conn = MySQLdb.Connect(host=settings.MYSQL_HOST,
+                                        port=settings.MYSQL_PORT,
+                                        user=settings.MYSQL_USER,
+                                        passwd=settings.MYSQL_PASSWD,
+                                        db=settings.MYSQL_DB,
+                                        charset=settings.MYSQL_CHARSET)
+            cur = conn.cursor()
+            cur.execute("select `name`, `type`, `whiteorblack` from `web_whiteblacklist` where `status` = 1")
+            results = cur.fetchall()
+            for row in results:
+                name = row[0]
+                type = row[1]
+                whiteorblack = row[2]
+                if type == 0: # 标题
+                    if whiteorblack == 0: # 白名单
+                        self.whiteWords.append(self.getUnicode(name))
+                    elif whiteorblack == 1: # 黑名单
+                        self.blackWords.append(self.getUnicode(name))
+                elif type == 1: # url
+                    if whiteorblack == 0: # 白名单
+                        self.whiteURLs.append(self.getUnicode(name))
+                    elif whiteorblack == 1:
+                        self.blackURLs.append(self.getUnicode(name))
+            cur.close()
+            conn.close()
         arr = [ x for x in self.whiteWords if x != '' ]
         self.whiteWords = arr
         arr = [ x for x in self.blackWords if x != '' ]
