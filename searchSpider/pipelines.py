@@ -41,7 +41,7 @@ class SearchspiderPipeline(object):
         return item
 
     def open_spider(self, spider):
-        logging.info(u"==open_spider调用成功==")
+        logging.info(u"==open_spider调用成功 %s ==" % spider.searchTaskId)
         self.conn = MySQLdb.Connect(host=settings.MYSQL_HOST,
                                     port=settings.MYSQL_PORT,
                                     user=settings.MYSQL_USER,
@@ -49,6 +49,10 @@ class SearchspiderPipeline(object):
                                     db=settings.MYSQL_DB,
                                     charset=settings.MYSQL_CHARSET)
         self.cur = self.conn.cursor()
+        if spider is not None and spider.searchTaskId is not None:
+            logging.info("Add running spiders counter %s" % spider.searchTaskId)
+            self.cur.execute("update web_searchtask set runningSpiders=ifnull(runningSpiders,0) + 1 where id=%s", [spider.searchTaskId])
+            self.conn.commit()
         # self.cur.execute("""
         #     CREATE TABLE if not exists web_searchspider_results (
         #     id int(11) PRIMARY KEY AUTO_INCREMENT,
@@ -64,12 +68,16 @@ class SearchspiderPipeline(object):
         #     status int(11) NOT NULL,
         #     processDate datetime DEFAULT NULL,
         #     project_id int(11) references web_project(id),
-        #     checkStatus int(11) DEFAULT NULL
+        #     checkStatus int(11) DEFAULT NULL,
+        #     program varchar(50) NULL
         #     )
         # """)
         # self.conn.commit()
 
     def close_spider(self, spider):
+        if spider is not None and spider.searchTaskId is not None:
+            logging.info("Minus running spiders counter %s" % spider.searchTaskId)
+            self.cur.execute("update web_searchtask set runningSpiders=ifnull(runningSpiders,0) - 1 where id=%s", [spider.searchTaskId])
         self.conn.commit()
         self.cur.close()
         self.conn.close()
