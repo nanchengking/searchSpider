@@ -27,7 +27,7 @@ NEWSPIDER_MODULE = 'searchSpider.spiders'
 # 开始intelliwatch管理员账号密码：
 MYSQL_HOST='localhost'
 MYSQL_USER='root'
-MYSQL_PASSWD='nanchengnancheng'
+MYSQL_PASSWD=''
 MYSQL_PORT=3306
 MYSQL_CHARSET='utf8'
 MYSQL_DB='intelliwatch'

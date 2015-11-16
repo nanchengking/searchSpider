@@ -17,6 +17,7 @@ import MySQLdb
 class BaiduMusicSearchSpider(scrapy.spiders.Spider):
     name = 'baiduMusicSearch'
     allow_domains = ['baidu.com']
+    # download_delay = 5
 
     def start_requests(self):
         return self.requests

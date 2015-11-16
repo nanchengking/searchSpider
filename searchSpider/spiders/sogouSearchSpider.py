@@ -18,6 +18,7 @@ import datetime
 class SogouSearchSpider(scrapy.spiders.Spider):
     name = 'sogouSearch'
     # allow_domains = ['baidu.com']
+    download_delay = 5#每次request发起的间隔在这儿设置，只针对这一只爬虫的，单位是秒
 
     def start_requests(self):
         return self.requests
