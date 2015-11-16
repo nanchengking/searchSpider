@@ -5,6 +5,7 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 import scrapy
+import re
 from scrapy import Request
 import os
 import logging
@@ -14,10 +15,9 @@ import datetime
 import MySQLdb
 
 
-class XiamiMusicSearchSpider(scrapy.spiders.Spider):
-    name = 'xiamiMusicSearch'
-    allow_domains = ['xiami.com']
-    #需要登录操作，暂时不做
+class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
+    name = 'tiantiandongtingMusicSearch'
+    allow_domains = ['dongting.com']
 
     def start_requests(self):
         return self.requests
@@ -25,10 +25,10 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
     def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, *args,
                  **kwargs):
         """
-        爬虫用来在虾米音乐搜索页面爬取一系列的关键字
+        爬虫用来在天天动听音乐搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
         :param targetUrl: 有没有需要直接爬取的链接，暂时不处理
-        :param limit: 最多抓取多少页
+        :param limit: 最多抓取多少页，在这儿，暂且一页代表50条结果
         :param projectId: 项目id
         :param args:
         :param kwargs:
@@ -42,27 +42,27 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
         elif isinstance(keyword, list):
             keywords = keyword
         else:
-            self.closed(u'传入keyword参数不合法！无法初始化虾米音乐爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化天天动听音乐爬虫')
         if not keywords:
-            self.closed(u'传入keyword参数不合法！无法初始化虾米音乐爬虫')
+            self.closed(u'传入keyword参数不合法！无法初始化天天动听音乐爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
         if (not name) or (not author):
-            self.closed(u'传入name 或 author参数不合法！无法初始化虾米音乐爬虫')
+            self.closed(u'传入name 或 author参数不合法！无法初始化天天动听音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
-        super(XiamiMusicSearchSpider, self).__init__(*args, **kwargs)
+        super(TiantiandongtingMusicSearchSpider, self).__init__(*args, **kwargs)
         self.isLinux = os.name == 'posix'  # 判断是否时linux系统
         self.songsURLS = set()
+        self.keywordsAndPages = {}
         self.startTime = datetime.datetime.now()
         self.num = 0
         self.limit = limit
-        self.keywordsAndPages = {}
         self.name = self.getUnicode(name)
         self.author = self.getUnicode(author)
         self.album = self.getUnicode(album)
         self.file1 = open('jsons.json', 'wb')
-        logging.info(u"====虾米音乐爬虫初始化成功====")
-        self.baseURL = ['http://www.xiami.com/search/song?key=', '']
+        logging.info(u"====天天动听音乐爬虫初始化成功====")
+        self.baseURL = ['http://www.dongting.com/#a=searchlist&q=', '','&page=','1','&size=','50','&callback=jsonp_search']
         self.requests = map(self.initStartRequests, keywords)
 
     def initStartRequests(self, keyword):
@@ -77,26 +77,23 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
         request = Request(url=''.join(url))
         request.meta['keyword'] = keyword
         request.meta['url'] = ''.join(url)
-        self.keywordsAndPages[keyword] = 0  # 每一个关键字开始爬取的都是第一页
         return request
 
     def parse(self, response):
         self.num += 1
         if response.status == 200:
-            results = response.css("tbody tr")
+            true=True#千万不要删除
+            tem=re.findall(r"^jsonp_search\((.*?)\)$",response.body)
+            results=eval(tem[0])['data']
             for result in results:
                 item = MusicSearchspiderItem()
-                item['platform'] = u"虾米音乐"
+                item['platform'] = u"天天动听"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = self.getUnicode(
-                    ''.join(result.xpath("./td[@class='song_name']/a[@target]/@href").extract())).strip()
-                item['program'] = self.getUnicode(
-                    ''.join(result.xpath("./td[@class='song_name']/a[@target]/@title").extract())).strip()
-                item['album'] = self.getUnicode(
-                    ''.join(result.xpath("./td[@class='song_album']/a[@target]/@title").extract())).strip()
-                item['author'] = self.getUnicode(
-                    ''.join(result.xpath("./td[@class='song_artist']/a[@target]/text()").extract())).strip()
+                item['targetUrl'] = self.getUnicode(result['audition_list'][0]['url'])
+                item['program'] = self.getUnicode(result['song_name']).strip()
+                item['album'] = ''
+                item['author'] = self.getUnicode(result['singer_name']).strip()
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -108,12 +105,15 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
                         self.songsURLS.add(item['targetUrl'])
                         yield item
 
-            if response.xpath("//a[@class='p_redirect_l']/@href"):
+            if results.__len()==50:#判断还有没有下一页
                 keyword = response.meta['keyword']
                 self.keywordsAndPages[keyword] += 1
                 pageNum = self.keywordsAndPages[keyword]
-                nextURL = u'http://www.xiami.com'+self.getUnicode(''.join(
-                    response.xpath("//div[@class='all_page']/a[@class='p_redirect_l']/@href").extract())).strip()
+                keyword = self.getUnicode(keyword)
+                nextURL = self.baseURL
+                nextURL[1]=keyword
+                nextURL[3]=str(pageNum)
+                nextURL=''.join(nextURL)
                 if pageNum < (self.limit):
                     logging.info(u"==现在爬取的关键字是: %s", keyword)
                     logging.info(u"==现在爬取的关键字的page num是: %s", pageNum)
@@ -173,8 +173,8 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
 
     def closed(self, reason):
         if reason:
-            logging.warning(u"虾米音乐爬虫运行结束： %s" % reason)
+            logging.warning(u"天天动听音乐爬虫运行结束： %s" % reason)
         logging.info(u"现在有多少songsURLS(抓取到了多少首歌)： %s" % len(self.songsURLS))
         logging.info(u'现在解析了多少页面： %s' % self.num)
         logging.info(u'limit是： %s' % self.limit)
-        logging.info(u'XiamiMusicSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
+        logging.info(u'tiantiandongtingMusicSearchSpider 爬了这么长时间： %s' % (datetime.datetime.now() - self.startTime))
