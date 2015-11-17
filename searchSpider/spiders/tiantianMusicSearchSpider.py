@@ -15,8 +15,8 @@ import datetime
 import MySQLdb
 
 
-class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
-    name = 'tiantiandongtingMusicSearch'
+class TiantianMusicSearchSpider(scrapy.spiders.Spider):
+    name = 'tiantianMusicSearch'
     allow_domains = ['dongting.com']
 
     def start_requests(self):
@@ -50,7 +50,7 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
         if (not name) or (not author):
             self.closed(u'传入name 或 author参数不合法！无法初始化天天动听音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
-        super(TiantiandongtingMusicSearchSpider, self).__init__(*args, **kwargs)
+        super(TiantianMusicSearchSpider, self).__init__(*args, **kwargs)
         self.isLinux = os.name == 'posix'  # 判断是否时linux系统
         self.songsURLS = set()
         self.keywordsAndPages = {}
@@ -62,7 +62,7 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
         self.album = self.getUnicode(album)
         self.file1 = open('jsons.json', 'wb')
         logging.info(u"====天天动听音乐爬虫初始化成功====")
-        self.baseURL = ['http://www.dongting.com/#a=searchlist&q=', '','&page=','1','&size=','50','&callback=jsonp_search']
+        self.baseURL = ['http://so.ard.iyyin.com/v2/songs/search?q=', '','&page=','1','&size=','50','&callback=jsonp_search']
         self.requests = map(self.initStartRequests, keywords)
 
     def initStartRequests(self, keyword):
@@ -77,12 +77,14 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
         request = Request(url=''.join(url))
         request.meta['keyword'] = keyword
         request.meta['url'] = ''.join(url)
+        self.keywordsAndPages[keyword] = 1
         return request
 
     def parse(self, response):
         self.num += 1
         if response.status == 200:
             true=True#千万不要删除
+            false=False
             tem=re.findall(r"^jsonp_search\((.*?)\)$",response.body)
             results=eval(tem[0])['data']
             for result in results:
@@ -90,10 +92,13 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"天天动听"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
-                item['targetUrl'] = self.getUnicode(result['audition_list'][0]['url'])
-                item['program'] = self.getUnicode(result['song_name']).strip()
+                if 'audition_list' in result.keys():
+                    item['targetUrl'] = result['audition_list'][0]['url']
+                else:
+                    item['targetUrl'] = ''
+                item['program'] = result['song_name']
                 item['album'] = ''
-                item['author'] = self.getUnicode(result['singer_name']).strip()
+                item['author'] = result['singer_name']
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -104,8 +109,8 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
                     if self.filters(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])
                         yield item
-
-            if results.__len()==50:#判断还有没有下一页
+            logging.info(u'===这一页有%s条数据==='%results.__len__())
+            if results.__len__()==50:#判断还有没有下一页
                 keyword = response.meta['keyword']
                 self.keywordsAndPages[keyword] += 1
                 pageNum = self.keywordsAndPages[keyword]
@@ -114,9 +119,9 @@ class TiantiandongtingMusicSearchSpider(scrapy.spiders.Spider):
                 nextURL[1]=keyword
                 nextURL[3]=str(pageNum)
                 nextURL=''.join(nextURL)
-                if pageNum < (self.limit):
-                    logging.info(u"==现在爬取的关键字是: %s", keyword)
-                    logging.info(u"==现在爬取的关键字的page num是: %s", pageNum)
+                if pageNum < (self.limit+1):
+                    logging.info(u"===现在爬取的关键字是: %s===", keyword)
+                    logging.info(u"===现在爬取的关键字的page num是: %s===", pageNum)
                     request = Request(url=nextURL)
                     request.meta['keyword'] = keyword
                     request.meta['url'] = nextURL

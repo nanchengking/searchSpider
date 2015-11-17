@@ -39,3 +39,4 @@ class MusicSearchspiderItem(scrapy.Item):
     checkStatus = scrapy.Field() #下线检查状态
     searchTask = scrapy.Field() #任务
     project = scrapy.Field() #项目
+    unique_code = scrapy.Field() #识别码，去重用的
