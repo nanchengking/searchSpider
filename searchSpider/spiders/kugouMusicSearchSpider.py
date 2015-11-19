@@ -22,7 +22,7 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, *args,
+    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, program='', *args,
                  **kwargs):
         """
         爬虫用来在酷狗音乐搜索页面爬取一系列的关键字
@@ -37,6 +37,7 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
         keywords = []
         self.projectId = projectId
         self.searchTaskId = searchTaskId
+        self.program = program
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -90,7 +91,7 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.meta['url']
                 item['targetUrl'] = ''
-                item['program'] = result['filename']
+                # item['program'] = result['filename']
                 item['album'] = result['album_name']
                 item['author'] = result['singername']
                 item['unique_code'] =item['program']+item['author']
@@ -100,6 +101,7 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
                 item['checkStatus'] = 0
                 item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = None if self.projectId == -1 else self.projectId
+                item['program'] = self.program
                 if not item['unique_code'] in self.unique_codes:  # 去重操作
                     if self.filters(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.unique_codes.add(item['unique_code'])

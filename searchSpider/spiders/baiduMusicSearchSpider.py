@@ -22,7 +22,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, *args,
+    def __init__(self, keyword, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, program='', *args,
                  **kwargs):
         """
         爬虫用来在百度音乐搜索页面爬取一系列的关键字
@@ -37,6 +37,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         keywords = []
         self.projectId = projectId
         self.searchTaskId = searchTaskId
+        self.program = self.getUnicode(program)
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -47,7 +48,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
             self.closed(u'传入keyword参数不合法！无法初始化百度音乐爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
-        if (not name) or (not author):
+        if (not program) or (not author):
             self.closed(u'传入name 或 author参数不合法！无法初始化百度音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
         super(BaiduMusicSearchSpider, self).__init__(*args, **kwargs)
@@ -57,7 +58,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         self.num = 0
         self.limit = limit
         self.keywordsAndPages = {}
-        self.name = self.getUnicode(name)
+        self.name = self.getUnicode(program)
         self.author = self.getUnicode(author)
         self.album = self.getUnicode(album)
         self.file1=open('jsons.json','wb')
@@ -91,8 +92,8 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
                 item['resultUrl'] = response.meta['url']
                 item['targetUrl'] = u"http://music.baidu.com" + self.getUnicode(
                     ''.join(result.xpath("./span[@class='song-title']/a[@data-songdata]/@href").extract())).strip()
-                item['program'] = self.getUnicode(
-                    ''.join(result.xpath("./span[@class='song-title']//text()").extract())).strip()
+                # item['program'] = self.getUnicode(
+                #     ''.join(result.xpath("./span[@class='song-title']//text()").extract())).strip()
                 item['album'] = self.getUnicode(
                     ''.join(result.xpath("./span[@class='album-title']//text()").extract())).strip()
                 item['author'] = self.getUnicode(
@@ -103,8 +104,9 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
                 item['checkStatus'] = 0
                 item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = None if self.projectId == -1 else self.projectId
+                item['program'] = self.program
                 if not item['targetUrl'] in self.songsURLS:  # 去重操作
-                    if self.filters(targetTitle=item['program'], author=item['author']):  # 过滤操作
+                    if self.filter(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])
                         yield item
 
@@ -124,7 +126,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         else:
             logging.info(response.status)
 
-    def filters(self, targetTitle=None, author=None, album=None):
+    def filter(self, targetTitle=None, author=None, album=None):
         """
         过滤操作
         :param targetTitle:

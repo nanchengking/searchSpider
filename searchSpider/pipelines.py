@@ -23,17 +23,17 @@ class SearchspiderPipeline(object):
                  platform,keyword,resultUrl,
                  targetUrl,targetTitle,createDate,
                  processDate,project_id,searchTask_id,
-                 checkStatus,status
+                 checkStatus,status,program
                  )
                   VALUES(
                   %s,%s,%s,
                   %s,%s,NOW(),
                   %s,%s,%s,
-                  %s,%s)""", (
+                  %s,%s,%s)""", (
                     item['platform'], item['keyword'], item['resultUrl'],
                     item['targetUrl'], item['targetTitle'], # strftime(item['createDate'], "%Y-%m-%d %H:%M:%s",
                     item['processDate'], item['project'], item['searchTask'],
-                    item['checkStatus'], item['status']
+                    item['checkStatus'], item['status'],item['program']
                 ))
             else:
                 self.cur.execute("""INSERT INTO web_searchspider_results(
@@ -94,7 +94,7 @@ class SearchspiderPipeline(object):
 
     def close_spider(self, spider):
         if spider is not None and spider.searchTaskId is not None:
-            logging.info("Minus running spiders counter %s" % spider.searchTaskId)
+            logging.info("Reduce running spiders counter %s" % spider.searchTaskId)
             self.cur.execute("update web_searchtask set runningSpiders=ifnull(runningSpiders,0) - 1 where id=%s", [spider.searchTaskId])
         self.conn.commit()
         self.cur.close()

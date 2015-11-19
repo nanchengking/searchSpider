@@ -22,7 +22,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, *args,
+    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, program='', *args,
                  **kwargs):
         """
         爬虫用来在虾米音乐搜索页面爬取一系列的关键字
@@ -37,6 +37,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
         keywords = []
         self.projectId = projectId
         self.searchTaskId = searchTaskId
+        self.program = program
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -91,8 +92,8 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
                 item['resultUrl'] = response.meta['url']
                 item['targetUrl'] = self.getUnicode(
                     ''.join(result.xpath("./td[@class='song_name']/a[@target]/@href").extract())).strip()
-                item['program'] = self.getUnicode(
-                    ''.join(result.xpath("./td[@class='song_name']/a[@target]/@title").extract())).strip()
+                # item['program'] = self.getUnicode(
+                #     ''.join(result.xpath("./td[@class='song_name']/a[@target]/@title").extract())).strip()
                 item['album'] = self.getUnicode(
                     ''.join(result.xpath("./td[@class='song_album']/a[@target]/@title").extract())).strip()
                 item['author'] = self.getUnicode(
@@ -103,6 +104,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
                 item['checkStatus'] = 0
                 item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = None if self.projectId == -1 else self.projectId
+                item['program'] = self.program
                 if not item['targetUrl'] in self.songsURLS:  # 去重操作
                     if self.filters(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])

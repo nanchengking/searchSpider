@@ -23,7 +23,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         return self.requests
 
     def __init__(self, keyword, filters='', blackWords='', whiteWords='', blackURLs='', whiteURLs='', targetUrl=None,
-                 limit=4, projectId=-1, searchTaskId=-1, bwlistDisabled=0, *args, **kwargs):
+                 limit=4, projectId=-1, searchTaskId=-1, bwlistDisabled=0, program='', *args, **kwargs):
         """
         爬虫用来在好搜搜索页面爬取一系列的关键字
         :param keyword: 关键字，是一个list
@@ -43,6 +43,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         self.projectId = projectId
         self.searchTaskId = searchTaskId
         self.bwlistDisabled = bwlistDisabled
+        self.program = program
         if isinstance(keyword, str):
             keywords = keyword.split(settings.SPLIT_SIGN)
         elif isinstance(keyword, list):
@@ -171,7 +172,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                 item = SearchspiderItem()
                 item['platform'] = u"好搜搜索"
                 item['keyword'] = response.meta['keyword']
-                item['resultUrl'] = response.meta['url']
+                item['resultUrl'] = response.url
                 item['targetUrl'] = self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]/@href").extract()))
                 item['targetTitle'] = self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
@@ -181,6 +182,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                 item['searchTask'] = 0
                 item['searchTask'] = None if self.searchTaskId == -1 else self.searchTaskId
                 item['project'] = self.projectId
+                item['program'] = self.program
                 if self.filter(targetTitle=item['targetTitle']):
                     logging.info(u"===开始检测url===")
                     if not item['targetUrl'] in self.faceURLs:  # 去重操作

@@ -22,6 +22,7 @@ class SearchspiderItem(scrapy.Item):
     checkStatus = scrapy.Field() #下线检查状态
     searchTask = scrapy.Field() #任务
     project = scrapy.Field() #项目
+    program = scrapy.Field()#歌曲名字
 
 class MusicSearchspiderItem(scrapy.Item):
     # define the fields for your item here like:
