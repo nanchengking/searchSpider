@@ -22,7 +22,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
     def start_requests(self):
         return self.requests
 
-    def __init__(self, keyword, name=None, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, program='', *args,
+    def __init__(self, keyword, author=None, album=None, limit=4, projectId=-1, searchTaskId=-1, program='', *args,
                  **kwargs):
         """
         爬虫用来在虾米音乐搜索页面爬取一系列的关键字
@@ -48,8 +48,8 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
             self.closed(u'传入keyword参数不合法！无法初始化虾米音乐爬虫')
         if not isinstance(limit, int):
             limit = int(limit)
-        if (not name) or (not author):
-            self.closed(u'传入name 或 author参数不合法！无法初始化虾米音乐爬虫')
+        if (not program) or (not author):
+            self.closed(u'program 或 author参数不合法！无法初始化虾米音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
         super(XiamiMusicSearchSpider, self).__init__(*args, **kwargs)
         self.isLinux = os.name == 'posix'  # 判断是否时linux系统
@@ -58,7 +58,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
         self.num = 0
         self.limit = limit
         self.keywordsAndPages = {}
-        self.name = self.getUnicode(name)
+        self.name = self.getUnicode(program)
         self.author = self.getUnicode(author)
         self.album = self.getUnicode(album)
         self.file1 = open('jsons.json', 'wb')
@@ -89,7 +89,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
                 item = MusicSearchspiderItem()
                 item['platform'] = u"虾米音乐"
                 item['keyword'] = response.meta['keyword']
-                item['resultUrl'] = response.meta['url']
+                item['resultUrl'] = response.url
                 item['targetUrl'] = self.getUnicode(
                     ''.join(result.xpath("./td[@class='song_name']/a[@target]/@href").extract())).strip()
                 # item['program'] = self.getUnicode(
@@ -106,7 +106,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
                 item['project'] = None if self.projectId == -1 else self.projectId
                 item['program'] = self.program
                 if not item['targetUrl'] in self.songsURLS:  # 去重操作
-                    if self.filters(targetTitle=item['program'], author=item['author']):  # 过滤操作
+                    if self.filter(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])
                         yield item
 
@@ -126,7 +126,7 @@ class XiamiMusicSearchSpider(scrapy.spiders.Spider):
         else:
             logging.info(response.status)
 
-    def filters(self, targetTitle=None, author=None, album=None):
+    def filter(self, targetTitle=None, author=None, album=None):
         """
         过滤操作
         :param targetTitle:

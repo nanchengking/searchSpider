@@ -49,7 +49,7 @@ class BaiduMusicSearchSpider(scrapy.spiders.Spider):
         if not isinstance(limit, int):
             limit = int(limit)
         if (not program) or (not author):
-            self.closed(u'传入name 或 author参数不合法！无法初始化百度音乐爬虫')
+            self.closed(u'传入program 或 author参数不合法！无法初始化百度音乐爬虫')
         logging.info(u"keywods is : %s" % keywords)
         super(BaiduMusicSearchSpider, self).__init__(*args, **kwargs)
         self.isLinux = os.name=='posix'#判断是否时linux系统
