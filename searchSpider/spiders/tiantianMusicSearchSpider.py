@@ -63,7 +63,8 @@ class TiantianMusicSearchSpider(scrapy.spiders.Spider):
         self.album = self.getUnicode(album)
         self.file1 = open('jsons.json', 'wb')
         logging.info(u"====天天动听音乐爬虫初始化成功====")
-        self.baseURL = ['http://so.ard.iyyin.com/v2/songs/search?q=', '','&page=','1','&size=','50','&callback=jsonp_search']
+        self.baseURL = ['http://so.ard.iyyin.com/v2/songs/search?q=', '', '&page=', '1', '&size=', '50',
+                        '&callback=jsonp_search']
         self.requests = map(self.initStartRequests, keywords)
 
     def initStartRequests(self, keyword):
@@ -84,10 +85,10 @@ class TiantianMusicSearchSpider(scrapy.spiders.Spider):
     def parse(self, response):
         self.num += 1
         if response.status == 200:
-            true=True#千万不要删除
-            false=False
-            tem=re.findall(r"^jsonp_search\((.*?)\)$",response.body)
-            results=eval(tem[0])['data']
+            true = True  # 千万不要删除
+            false = False
+            tem = re.findall(r"^jsonp_search\((.*?)\)$", response.body)
+            results = eval(tem[0])['data']
             for result in results:
                 item = MusicSearchspiderItem()
                 item['platform'] = u"天天动听"
@@ -111,17 +112,17 @@ class TiantianMusicSearchSpider(scrapy.spiders.Spider):
                     if self.filter(targetTitle=item['program'], author=item['author']):  # 过滤操作
                         self.songsURLS.add(item['targetUrl'])
                         yield item
-            logging.info(u'===这一页有%s条数据==='%results.__len__())
-            if results.__len__()==50:#判断还有没有下一页
+            logging.info(u'===这一页有%s条数据===' % results.__len__())
+            if results.__len__() == 50:  # 判断还有没有下一页
                 keyword = response.meta['keyword']
                 self.keywordsAndPages[keyword] += 1
                 pageNum = self.keywordsAndPages[keyword]
                 keyword = self.getUnicode(keyword)
                 nextURL = self.baseURL
-                nextURL[1]=keyword
-                nextURL[3]=str(pageNum)
-                nextURL=''.join(nextURL)
-                if pageNum < (self.limit+1):
+                nextURL[1] = keyword
+                nextURL[3] = str(pageNum)
+                nextURL = ''.join(nextURL)
+                if pageNum < (self.limit + 1):
                     logging.info(u"===现在爬取的关键字是: %s===", keyword)
                     logging.info(u"===现在爬取的关键字的page num是: %s===", pageNum)
                     request = Request(url=nextURL)
@@ -139,8 +140,8 @@ class TiantianMusicSearchSpider(scrapy.spiders.Spider):
         :param album:关于专辑，暂时不用管
         :return:
         """
-        if (self.name in targetTitle and self.author in author) or (
-                        self.name in targetTitle and self.author in targetTitle):
+        if (self.name.lower() in targetTitle.lower() and self.author.lower() in author.lower()) or (
+                        self.name.lower() in targetTitle.lower() and self.author.lower() in targetTitle.lower()):
             logging.debug(u"===我们抓到一只！！！===")
             self.file1.write(self.name)
             self.file1.write(u"targetTitle: " + targetTitle)

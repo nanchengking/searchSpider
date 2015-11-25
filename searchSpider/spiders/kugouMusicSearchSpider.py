@@ -95,7 +95,7 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
                 # item['program'] = result['filename']
                 item['album'] = result['album_name']
                 item['author'] = result['singername']
-                item['unique_code'] =item['program']+item['author']
+                item['unique_code'] = item['program'] + item['author']
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
                 item['processDate'] = datetime.datetime.now()
@@ -134,8 +134,8 @@ class KugouMusicSearchSpider(scrapy.spiders.Spider):
         :param album:关于专辑，暂时不用管
         :return:
         """
-        if (self.name in targetTitle and self.author in author) or (
-                        self.name in targetTitle and self.author in targetTitle):
+        if (self.name.lower() in targetTitle.lower() and self.author.lower() in author.lower()) or (
+                        self.name.lower() in targetTitle.lower() and self.author.lower() in targetTitle.lower()):
             logging.debug(u"===我们抓到一只！！！===")
             self.file1.write(self.name)
             self.file1.write(u"targetTitle: " + targetTitle)

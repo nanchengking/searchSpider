@@ -110,9 +110,9 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
                 whiteorblack = row[2]
                 if type == 0: # 标题
                     if whiteorblack == 0: # 白名单
-                        self.whiteWords.append(self.getUnicode(name))
+                        self.whiteWords.append(self.getUnicode(name).lower())
                     elif whiteorblack == 1: # 黑名单
-                        self.blackWords.append(self.getUnicode(name))
+                        self.blackWords.append(self.getUnicode(name).lower())
                 elif type == 1: # url
                     if whiteorblack == 0: # 白名单
                         self.whiteURLs.append(self.getUnicode(name))
@@ -281,7 +281,7 @@ class BaiduSearchSpider(scrapy.spiders.Spider):
         """
         count = 0
         for filter in self.filters:
-            if self.getUnicode(filter) in targetTitle:
+            if self.getUnicode(filter).lower() in targetTitle.lower():
                 logging.info(u'===过滤关键字filter is===%s' % self.getUnicode(filter))
                 count += 1  # 考虑可能需要分级，命中关键字多的，嫌疑也比较大，这儿暂时不加处理
                 logging.info(str(count))
