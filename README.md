@@ -16,7 +16,7 @@ scrapy crawl baiduSearch -a keyword="瓜皮,瓜皮猫" -a filters="瓜皮猫,豆
 </p>
 
 <h3>
-scrapy crawl baiduMusicSearch -a keyword="国际歌,国际歌 唐朝" -a name="国际歌" -a author="唐朝" -a limit=5
+scrapy crawl xiamiMusicSearch -a keyword="国际歌,国际歌 唐朝" -a program="国际歌" -a author="唐朝" -a limit=5
 </h3><br>
 <h3>百度音乐、虾米音乐、天天动听、酷狗音乐、酷我音乐、网易云音乐</h3><br>
 http://so.ard.iyyin.com/v2/songs/search?q=%E8%8C%89%E8%8E%89%E8%8A%B1&page=1&size=100&callback=jsonp_search&isg2=Am5usRdnUrGTy5Y9yKfcJ6Skns4xdjIv
