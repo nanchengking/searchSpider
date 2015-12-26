@@ -13,7 +13,7 @@ import logging
 from searchSpider import settings
 from searchSpider.items import *
 import datetime
-
+import urlparse
 
 class HaosouSearchSpider(scrapy.spiders.Spider):
     name = 'haosouSearch'
@@ -249,7 +249,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         logging.info(u"======调用getRealURLAndDoFilter======")
         item = response.meta['item']
         if "Location" in response.headers:
-            item['targetUrl'] = response.headers["Location"]
+            item['targetUrl'] = urlparse.urljoin(response.url, response.headers["Location"])
         else :
             item['targetUrl'] = response.url
 
