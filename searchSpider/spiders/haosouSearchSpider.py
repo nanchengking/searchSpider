@@ -173,7 +173,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                 item['platform'] = u"好搜搜索"
                 item['keyword'] = response.meta['keyword']
                 item['resultUrl'] = response.url
-                item['targetUrl'] = self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]/@href").extract()))
+                item['targetUrl'] = urlparse.urljoin(response.url, self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]/@href").extract())))
                 item['targetTitle'] = self.getUnicode(''.join(result.xpath(".//h3[@class]/a[@href]//text()").extract()))
                 item['createDate'] = datetime.datetime.now()
                 item['status'] = 0
@@ -187,7 +187,10 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
                     logging.info(u"===开始检测url===")
                     if not item['targetUrl'] in self.faceURLs:  # 去重操作
                         self.faceURLs.add(item['targetUrl'])
-                        yield self.checkURLis200(url=item['targetUrl'], item=item)
+                        if 'haosou.com' in item['targetUrl']:
+                            yield self.checkURLis200(url=item['targetUrl'], item=item)
+                        else:
+                            yield self.filterItem(item)
             keyword = response.meta['keyword']
             self.keywordsAndPages[keyword] += 1
             pageNum = self.keywordsAndPages[keyword]
@@ -250,9 +253,15 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
         item = response.meta['item']
         if "Location" in response.headers:
             item['targetUrl'] = urlparse.urljoin(response.url, response.headers["Location"])
-        else :
+        elif 'malurl_tip' in response.url: # 恶意软件下载提示
+            url = ''.join(response.xpath('//*[@id="container"]/div[1]/div/em/a/@href').extract())
+            item['targetUrl'] = url
+            yield self.checkURLis200(url, item)
+        else:
             item['targetUrl'] = response.url
+        yield self.filterItem(item)
 
+    def filterItem(self, item):
         if self.whiteURLs and self.blackURLs and self.whiteWords:  # 只有这三个参数同时有效才调用下面的判断过滤逻辑
             logging.info(u'===调用高级过滤方式===')
             if not [i for i in self.whiteURLs if i in item['targetUrl']]:  # 只要不是在url白名单内的数据，才进行下面的判断
@@ -270,6 +279,7 @@ class HaosouSearchSpider(scrapy.spiders.Spider):
             if not item['targetUrl'] in self.realURLs:
                 self.realURLs.add(item['targetUrl'])
                 return item
+        return None
 
     def filter(self, targetTitle):
         """
